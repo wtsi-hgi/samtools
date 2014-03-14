@@ -356,7 +356,7 @@ double calc_mwu_bias_cdf(int *a, int *b, int n)
 
     // Exact calculation
     double pval = 2*mann_whitney_1947_cdf(na,nb,U_min);
-    return pval>1 ? 1 : pval;
+    return -log(pval>1 ? 1 : pval);
 }
 
 double calc_mwu_bias(int *a, int *b, int n)
@@ -377,27 +377,31 @@ double calc_mwu_bias(int *a, int *b, int n)
     if ( !na || !nb ) return HUGE_VAL;
     if ( na==1 || nb==1 ) return 1.0;       // Flat probability, all U values are equally likely
 
-    double mean = ((double)na*nb)*0.5;
-    if ( na==2 || nb==2 )
-    {
-        // Linear approximation
-        return U>mean ? (2.0*mean-U)/mean : U/mean;
-    }
-    // Correction for ties:
-    //      double N = na+nb;
-    //      double var2 = (N*N-1)*N-ties;
-    //      if ( var2==0 ) return 1.0;
-    //      var2 *= ((double)na*nb)/N/(N-1)/12.0;
-    // No correction for ties:
-    double var2 = ((double)na*nb)*(na+nb+1)/12.0;
-    if ( na>=8 || nb>=8 )
-    {
-        // Normal approximation, very good for na>=8 && nb>=8 and reasonable if na<8 or nb<8
-        return exp(-0.5*(U-mean)*(U-mean)/var2);
-    }
+    // Always work with the smaller U
+    double U_min = ((double)na * nb) - U;
+    if ( U < U_min ) U_min = U;
+
+    // double mean = ((double)na*nb)*0.5;
+    // if ( na==2 || nb==2 )
+    // {
+    //     // Linear approximation
+    //     return U>mean ? (2.0*mean-U)/mean : U/mean;
+    // }
+    // // Correction for ties:
+    // //      double N = na+nb;
+    // //      double var2 = (N*N-1)*N-ties;
+    // //      if ( var2==0 ) return 1.0;
+    // //      var2 *= ((double)na*nb)/N/(N-1)/12.0;
+    // // No correction for ties:
+    // double var2 = ((double)na*nb)*(na+nb+1)/12.0;
+    // if ( na>=8 || nb>=8 )
+    // {
+    //     // Normal approximation, very good for na>=8 && nb>=8 and reasonable if na<8 or nb<8
+    //     return exp(-0.5*(U-mean)*(U-mean)/var2);
+    // }
 
     // Exact calculation
-    return mann_whitney_1947(na,nb,U) * sqrt(2*M_PI*var2);
+    return U_min;
 }
 
 static inline double logsumexp2(double a, double b)
